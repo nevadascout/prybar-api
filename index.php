@@ -2,7 +2,10 @@
 	
 require("functions.inc.php");
 
+// SSL is not required as the nginx load balancer has SSL termination
+// after which point network traffic is sent via private networks only
 //RequireSSL();
+
 RequireAuthentication();
 RequirePostRequest();
 
