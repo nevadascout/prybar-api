@@ -9,6 +9,7 @@ require("functions.inc.php");
 RequireAuthentication();
 RequirePostRequest();
 
+// TODO -- Add connectionstring here
 $db = MongoConnect();
 
 $appId = $_SERVER['PHP_AUTH_USER'];
