@@ -48,18 +48,11 @@ function MongoConnect($mongoServer, $mongoUser, $mongoPass)
 /// </summary>
 function GetAppId($db, $apiKey)
 {    
-    $collection = $db->ApiKeys;
+    $collection = $db->AppApiKeyPairs;
 
-    try
-    {
-        $key = $collection->findOne(array('apiKey' => $apiKey));
-    }
-    catch (Exception $ex)
-    {
-        echo $ex;
-    }
+    $key = $collection->findOne(array('apiKey' => $apiKey));
         
-    if($key != null)
+    if($key != null && $key["enabled"] == true)
     {
         return $key["appId"];
     }

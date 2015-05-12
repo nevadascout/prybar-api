@@ -1,0 +1,10 @@
+{
+    "type": "error",
+    "summary": "Unhandled Exception: CheeseOverloadException",
+    "detail": "This is the error detail",
+    "stackTrace": "<stack trace here>",
+    "machine": "ignite.qa.ijyi.com",
+    "user": "travis@prybar.io",
+    "timestamp": "10/05/2015 15:15:07",
+    "tags": ["exception", "CheeseOverloadException", "qa"]
+}
