@@ -83,9 +83,8 @@ function GetJson($appId)
         $event = new Event();
         $cleanTags = [];
         
-        // Format provided date time
-        $unixTime = strtotime($input["timestamp"]);
-        $timestamp = date("Y-m-d\TH:i:s\Z", $unixTime);
+        // Format provided date time        
+        $timestamp = new MongoDate(strtotime($input["timestamp"]));
         
         // Replace spaces with dashes within tags
         foreach ($input["tags"] as $tag)
@@ -94,20 +93,26 @@ function GetJson($appId)
         }
         
         // Check the type is set correctly
-        if($event->type == "Error") { $event->type = "error"; }
-        if($event->type == "Context") { $event->type = "context"; }
+        $type = $input["type"];
         
-        if($event->type != "error" || $event->type != "context")
+        if($type == "Error") { $type = "error"; }
+        if($type == "Context") { $type = "context"; }
+        
+        if($type != "error")
         {
+            var_dump($type);
             ReturnIncorrectJson();
         }
         
-        // Clean machine value
-        $machine = str_replace(" ", "-", $input["machine"]);
+        // Clean machine value if set
+        if($input["machine"] != null)
+        {
+            $machine = str_replace(" ", "-", $input["machine"]);
+        }
         
-        // Perform this manually to avoid saving unwanted fields
+        // Perform the assignments manually to avoid saving unwanted fields
         $event->appId = $appId;
-        $event->type = $input["type"];
+        $event->type = $type;
         $event->summary = $input["summary"];
         $event->detail = $input["detail"];
         $event->stackTrace = $input["stackTrace"];
@@ -116,6 +121,7 @@ function GetJson($appId)
         $event->timestamp = $timestamp;
         $event->tags = $cleanTags;
         
+        // Check for the minimum required values
         if(isset($event->type) &&
            isset($event->summary) &&
            isset($event->timestamp))
