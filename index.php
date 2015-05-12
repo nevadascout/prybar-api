@@ -1,23 +1,24 @@
 <?php
-	
+
 require("functions.inc.php");
 
 // SSL is not required as the nginx load balancer has SSL termination
 // after which point network traffic is sent via private networks only
-//RequireSSL();
 
-RequireAuthentication();
+// Only allow POST requests to the API
 RequirePostRequest();
 
-// TODO -- Add connectionstring here
-$db = MongoConnect();
+// Connect to mongo
+$db = MongoConnect("178.62.74.38", "mongouser", "u9tcbKBuoQWFHhXFMzJImqjsKyt7Z1"); // Staging DB Details
+//$db = MongoConnect("localhost", "", ""); // Local development
 
-$appId = $_SERVER['PHP_AUTH_USER'];
-$appToken = $_SERVER['PHP_AUTH_PW'];
+// Perform authentication using the X-ApiKey HTTP Header
+$appId = GetAppId($db, $_SERVER['HTTP_X_APIKEY']);
 
-PerformAuthentication($db, $appId, $appToken);
-
+// Process the supplied json
 $newEvent = GetJson($appId);
+
+// Save the json to the db
 SaveJson($db, $newEvent);
 
 ?>

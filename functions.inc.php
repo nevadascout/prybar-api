@@ -1,16 +1,6 @@
 <?php
 
-/// <summary>
-/// Require the current HTTP request to be made over HTTPS / SSL
-/// </summary>
-function RequireSSL()
-{
-    if(empty($_SERVER["HTTPS"]) || $_SERVER["HTTPS"] != "on")
-    {
-        header('HTTP/1.1 400 Bad Request');
-        die("API requests must be made over HTTPS");
-    }
-}
+date_default_timezone_set('UTC');
 
 /// <summary>
 /// Require requests made to the API to use POST
@@ -27,19 +17,23 @@ function RequirePostRequest()
 /// <summary>
 /// Connect to the mongo server
 /// </summary>
-function MongoConnect($connectionString)
+function MongoConnect($mongoServer, $mongoUser, $mongoPass)
 {
-    if(!isset($connectionString))
-    {
-        $m = new MongoClient($connectionString);   
-    }
-    else
+    if($mongoServer == "localhost")
     {
         // Connect locally
         $m = new MongoClient();
     }
-    
-    $db = $m->PrybarDev;
+    else
+    {
+        $m = new MongoClient('mongodb://' . $mongoServer, [
+            'username' => $mongoUser,
+            'password' => $mongoPass,
+            'db'       => 'Prybar'
+        ]);
+    }
+
+    $db = $m->Prybar;
     
     if(!$db)
     {
@@ -50,49 +44,28 @@ function MongoConnect($connectionString)
 }
 
 /// <summary>
-/// Require the current HTTP request to be using HTTP Basic Authentication
-/// </summary>
-function RequireAuthentication()
-{
-    if (!isset($_SERVER['PHP_AUTH_USER']))
-    {
-        header('WWW-Authenticate: Basic realm="Prybar API"');
-        header('HTTP/1.1 401 Unauthorized');
-        exit();
-    }
-}
-
-/// <summary>
 /// Perform authentication for the current request against Mongo
 /// </summary>
-function PerformAuthentication($db, $appId, $apiToken)
+function GetAppId($db, $apiKey)
 {    
-    $authenticated = false;
-    
-    $collection = $db->Apps;        
-    $app = $collection->findOne(array('_id' => new MongoId($appId)), array('ApiKeys'));
-    
-    if($app != null && $app["ApiKeys"] != null)
+    $collection = $db->ApiKeys;
+
+    try
     {
-        foreach($app["ApiKeys"] as $apiKey)
-        {
-            // Prevent unnecessary loop iterations
-            if(!$authenticated)
-            {
-                if($apiKey["Key"] == $apiToken && $apiKey["IsActive"])
-                {
-                    $authenticated = true;
-                }
-            }
-        }
+        $key = $collection->findOne(array('apiKey' => $apiKey));
+    }
+    catch (Exception $ex)
+    {
+        echo $ex;
+    }
+        
+    if($key != null)
+    {
+        return $key["appId"];
     }
     
-    if(!$authenticated)
-    {
-        header('WWW-Authenticate: Basic realm="Prybar API"');
-        header('HTTP/1.1 401 Unauthorized');
-        exit();
-    }
+    header('HTTP/1.1 401 Unauthorized');
+    exit();
 }
 
 /// <summary>
@@ -110,6 +83,10 @@ function GetJson($appId)
         $event = new Event();
         $cleanTags = [];
         
+        // Format provided date time
+        $unixTime = strtotime($input["timestamp"]);
+        $timestamp = date("Y-m-d\TH:i:s\Z", $unixTime);
+        
         // Replace spaces with dashes within tags
         foreach ($input["tags"] as $tag)
         {
@@ -117,23 +94,26 @@ function GetJson($appId)
         }
         
         // Check the type is set correctly
-        if($event->type == "Error") { $event->type = "error"; }        
+        if($event->type == "Error") { $event->type = "error"; }
         if($event->type == "Context") { $event->type = "context"; }
         
         if($event->type != "error" || $event->type != "context")
         {
             ReturnIncorrectJson();
         }
-                        
+        
+        // Clean machine value
+        $machine = str_replace(" ", "-", $input["machine"]);
+        
         // Perform this manually to avoid saving unwanted fields
         $event->appId = $appId;
         $event->type = $input["type"];
         $event->summary = $input["summary"];
         $event->detail = $input["detail"];
-        $event->trace = $input["trace"];
-        $event->machine = $input["machine"];
+        $event->stackTrace = $input["stackTrace"];
+        $event->machine = $machine;
         $event->user = $input["user"];
-        $event->timestamp = $input["timestamp"];
+        $event->timestamp = $timestamp;
         $event->tags = $cleanTags;
         
         if(isset($event->type) &&
@@ -190,7 +170,7 @@ class Event {
     public $type;
     public $summary;
     public $detail;
-    public $trace;
+    public $stackTrace;
     public $machine;
     public $user;
     public $timestamp;
