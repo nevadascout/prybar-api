@@ -9,7 +9,7 @@ require("functions.inc.php");
 RequirePostRequest();
 
 // Connect to mongo
-$db = MongoConnect("10.131.174.61", "mongouser", "u9tcbKBuoQWFHhXFMzJImqjsKyt7Z1"); // db1.prybar.io
+$db = MongoConnect("10.131.174.61", "user", "pass"); // db.prybar.io
 //$db = MongoConnect("localhost", "", ""); // Local development
 
 // Perform authentication using the X-ApiKey HTTP Header
